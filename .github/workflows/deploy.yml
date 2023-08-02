@@ -1,0 +1,35 @@
+name: Deploy shiny server
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Deploy to Server
+        uses: tohn/rsync-deploy@main
+        env:
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+          ARGS: -avz --delete
+          SERVER_PORT: "22"
+          FOLDER: ./
+          SERVER_IP: ${{ secrets.SSH_HOST }}
+          USERNAME: ${{ secrets.SSH_USERNAME }}
+          SERVER_DESTINATION: /srv/myDashboard/
+          
+      - name: Install Dependencies and Restart
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.DEPLOY_KEY }}
+          script: |
+            cd /srv/myDashboard
+            Rscript restore_packages.R
+            systemctl restart shiny-server.service
