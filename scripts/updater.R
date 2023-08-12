@@ -500,3 +500,11 @@ update_stock <- function(tbl_lst, start_date, end_date, api, conn, ...) {
   })
   message("----------- Stock Updater End -----------", sep = "")
 }
+
+# conn <- dbConnect(
+#   RPostgres::Postgres() , dbname = "quant_r", user = pg_username,
+#   password = pg_pwd, host = host, port = 5432
+# )
+# tmp <- stockUpdater$new(api = api, nowdate = "2022-12-31", conn = conn)
+# tmp <- yinbaoUpdater$new(app_id = app_id, app_key = app_key, conn = conn, nowdate = "2023-08-01")
+# tmp$update_daily()

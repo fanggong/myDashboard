@@ -31,5 +31,6 @@ jobs:
           key: ${{ secrets.DEPLOY_KEY }}
           script: |
             cd /srv/myDashboard
+            cp /home/ubuntu/config/config.R /srv/myDashboard/
             Rscript restore_packages.R
             systemctl restart shiny-server.service

@@ -13,6 +13,7 @@ library(lubridate)
 library(plotly)
 library(daterangepicker)
 library(DT)
+library(jsonlite)
 
 library(RPostgres)
 library(Tushare)
@@ -66,7 +67,6 @@ TBL_LST <- list(
   )
 )
 
-
 ###### funcs ----
 get_data_status <- function(tar = list("quant_r", "haiyue")) {
   result <- list()
@@ -112,14 +112,14 @@ sql <- "
 select
   src.cal_date cal_date,
   pos.ts_code code,
-  stk_basic.name name,
+  stk_basic.name name_t,
   sum(size) size,
-  cast(sum(price * size) as decimal(18, 2)) cost,
-  cast(sum(close * size) as decimal(18, 2)) value
+  cast(sum(price * size) as decimal(18, 2)) cost_t,
+  cast(sum(close * size) as decimal(18, 2)) value_t
 from (
   select cal_date
   from trade_cal
-  where is_open = 1 
+  where is_open = 1
     and cal_date between '20221230' and {nowdate}
 ) src
 left join (
@@ -135,11 +135,13 @@ left join (
   from stock_basic
 ) stk_basic on pos.ts_code = stk_basic.ts_code
 group by src.cal_date, pos.ts_code, stk_basic.name
-order by cost desc
+order by cost_t desc
 "
 sql <- glue_sql(sql, nowdate = .format_date(UPDATE_DATE), .con = conn)
 stock_pnl_detail <- dbGetQuery(conn, sql)
+names(stock_pnl_detail) <- c("cal_date", "code", "name", "size", "cost", "value")
 setDT(stock_pnl_detail)
+
 
 stock_pnl_detail <- stock_pnl_detail[
   , `:=`(cal_date = as.Date(cal_date, tryFormats = "%Y%m%d"))
@@ -152,7 +154,7 @@ stock_pnl_daily <- stock_pnl_detail[
     cost = sum(cost),
     value = sum(value),
     all = sum(value) - sum(cost)
-  ), .(cal_date)  
+  ), .(cal_date)
 ][
   , `:=`(
     periodly = all - shift(all, n = 1, type = "lag")
