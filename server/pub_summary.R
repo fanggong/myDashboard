@@ -1,10 +1,19 @@
 pub_summary_dat <- reactive({
-  tmp <- tkt_detail
-  tmp <- tmp[cal_date >= input$pub_summary_period[1] & cal_date <= input$pub_summary_period[2]]
-  tmp <- tmp[
+  tmp <- tkt_detail_dat()[
     , .(
       periodly = sum(total_amount)
     ), .(cal_date)
+  ]
+  
+  tmp <- merge(
+    data.table(cal_date = seq.Date(as.Date(input$pub_period[1]), as.Date(input$pub_period[2]), by = 1)),
+    tmp, all.x = TRUE
+  )
+
+  tmp <- tmp[
+    , `:=`(
+      periodly = nafill(periodly, fill = 0)
+    )
   ][
     order(cal_date), `:=`(
       periodly_cumsum = cumsum(periodly),
@@ -27,8 +36,8 @@ pub_summary_dat <- reactive({
     ][
       , `:=`(
         cal_date = .mid_date(start_date, end_date),
-        start_date = .ifelse(start_date > input$pub_summary_period[1], start_date, input$pub_summary_period[1]),
-        end_date = .ifelse(end_date < input$pub_summary_period[2], end_date, input$pub_summary_period[2])
+        start_date = .ifelse(start_date > input$pub_period[1], start_date, input$pub_period[1]),
+        end_date = .ifelse(end_date < input$pub_period[2], end_date, input$pub_period[2])
       )
     ]
   } else if (input$pub_summary_type == "quarterly") {
@@ -43,8 +52,8 @@ pub_summary_dat <- reactive({
     ][
       , `:=`(
         cal_date = .mid_date(start_date, end_date),
-        start_date = .ifelse(start_date > input$pub_summary_period[1], start_date, input$pub_summary_period[1]),
-        end_date = .ifelse(end_date < input$pub_summary_period[2], end_date, input$pub_summary_period[2])
+        start_date = .ifelse(start_date > input$pub_period[1], start_date, input$pub_period[1]),
+        end_date = .ifelse(end_date < input$pub_period[2], end_date, input$pub_period[2])
       )
     ]
   } else if (input$pub_summary_type == "yearly") {
@@ -59,8 +68,8 @@ pub_summary_dat <- reactive({
     ][
       , `:=`(
         cal_date = .mid_date(start_date, end_date),
-        start_date = .ifelse(start_date > input$pub_summary_period[1], start_date, input$pub_summary_period[1]),
-        end_date = .ifelse(end_date < input$pub_summary_period[2], end_date, input$pub_summary_period[2])
+        start_date = .ifelse(start_date > input$pub_period[1], start_date, input$pub_period[1]),
+        end_date = .ifelse(end_date < input$pub_period[2], end_date, input$pub_period[2])
       )
     ]
   }

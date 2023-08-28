@@ -110,6 +110,16 @@ suppressWarnings({
   "
   dbSendQuery(conn, sql)
   
+  ## update price error in stock flow ----
+  sql <- "
+  update stock_flow
+  set 
+    buy_price = 14.5,
+    unit_buy_price = 14.5
+  where product_name = '德式贰发小麦'
+    and confirmed_time between '2023-07-05 00:00:00' and '2023-08-05 23:59:59'
+  "
+  dbSendQuery(conn, sql)
   
   ## raw material setting ----
   sql <- "
@@ -135,7 +145,7 @@ suppressWarnings({
   ) src on src.name = pro.material_name
   "
   tmp <- dbGetQuery(conn, sql)
-  setDT(tmp)
+  data.table::setDT(tmp)
   
   erfa <- unique(tmp[material_name == '德式贰发小麦', .(material_name, material_barcode)])
   tmp[
@@ -161,8 +171,8 @@ suppressWarnings({
     )
   ][
     , `:=`(
-      product_size = fifelse(product_unit == 'ml', as.numeric(product_size) / 1000, as.numeric(product_size)),
-      product_unit = fifelse(product_unit == 'ml', 'L', product_unit),
+      product_size = data.table::fifelse(product_unit == 'ml', as.numeric(product_size) / 1000, as.numeric(product_size)),
+      product_unit = data.table::fifelse(product_unit == 'ml', 'L', product_unit),
       updated_at = Sys.time()
     )
   ]

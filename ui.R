@@ -7,8 +7,8 @@ ui <- dashboardPage(
     sidebarMenu(
       menuItem("Data Management", tabName = "data_management", icon = icon("database")),
       menuItem("A-share Market", tabName = "stock", icon = icon("money-bill-trend-up")),
-      menuItem("Crypto Currencies", tabName = "crypto", icon = icon("bitcoin")),
-      menuItem("Craft Pub", tabName = "pub", icon = icon("wine-glass"))
+      menuItem("Craft Pub", tabName = "pub", icon = icon("wine-glass")),
+      menuItem("Crypto Currencies", tabName = "crypto", icon = icon("bitcoin"))
     )
   ),
   # body ----
@@ -78,138 +78,64 @@ ui <- dashboardPage(
       ## stock tab ----
       tabItem(
         tabName = "stock",
-        ### summary ----
-        box(
-          title = "Summary", status = "lightblue", solidHeader = TRUE, width = NULL,
-          id = "stock_summary",
-          fluidRow(
-            column(
-              width = 4,
-              daterangepicker::daterangepicker(
-                inputId = "stock_summary_period", start = Sys.Date() - 29, end = Sys.Date(),
-                min = "2023-01-01", max = Sys.Date(), label = NULL, ranges = list(
-                  "Current Month" = c(lubridate::floor_date(Sys.Date(), unit = "month"), Sys.Date()),
-                  "Current Quarter" = c(lubridate::floor_date(Sys.Date(), unit = "quarter"), Sys.Date()),
-                  "Current Year" = c(lubridate::floor_date(Sys.Date(), unit = "year"), Sys.Date())
-                )
-              )
-            ),
-            column(
-              width = 5, offset = 3,
-              shinyWidgets::radioGroupButtons(
-                inputId = "stock_summary_type", selected = "daily", justified = TRUE,
-                choices = c("Daily" = "daily", "Monthly" = "monthly", "Quarterly" = "quarterly", "Yearly" = "yearly")
+        fluidRow(
+          column(
+            width = 4,
+            daterangepicker::daterangepicker(
+              inputId = "stock_period", start = Sys.Date() - 29, end = Sys.Date(),
+              min = "2023-01-01", max = Sys.Date(), label = NULL, ranges = list(
+                "Current Month" = c(lubridate::floor_date(Sys.Date(), unit = "month"), Sys.Date()),
+                "Current Quarter" = c(lubridate::floor_date(Sys.Date(), unit = "quarter"), Sys.Date()),
+                "Current Year" = c(lubridate::floor_date(Sys.Date(), unit = "year"), Sys.Date())
               )
             )
           ),
-          fluidRow(
-            column(width = 6, plotlyOutput(outputId = "stock_summary_periodly")),
-            column(width = 6, plotlyOutput(outputId = "stock_summary_cumsum"))
+          column(
+            width = 8,
+            shinyWidgets::radioGroupButtons(
+              inputId = "stock_type", selected = "summary", justified = TRUE, size = "sm",
+              choices = c("Summary" = "summary", "Positions" = "positions")
+            )
           )
         ),
-        ### positions ----
-        box(
-          title = "Positions", status = "lightblue", solidHeader = TRUE, width = NULL,
-          id = "stock_positions",
-          fluidRow(
-            column(
-              width = 4,
-              daterangepicker::daterangepicker(
-                inputId = "stock_positions_period", start = Sys.Date() - 29, end = Sys.Date(),
-                min = "2023-01-01", max = Sys.Date(), label = NULL, ranges = list(
-                  "Current Month" = c(lubridate::floor_date(Sys.Date(), unit = "month"), Sys.Date()),
-                  "Current Quarter" = c(lubridate::floor_date(Sys.Date(), unit = "quarter"), Sys.Date()),
-                  "Current Year" = c(lubridate::floor_date(Sys.Date(), unit = "year"), Sys.Date())
-                )
-              )
-            ),
-            column(
-              width = 4, offset = 4,
-              shinyWidgets::pickerInput(
-                inputId = "stock_positions_code", label = NULL, 
-                choices = stock_subjects,
-                choicesOpt = list(subtext = stock_subjects),
-                options = list(size = 5)
+        uiOutput(outputId = "stock_result")
+      ),
+      ## pub tab ----
+      tabItem(
+        tabName = "pub",
+        fluidRow(
+          column(
+            width = 4,
+            daterangepicker::daterangepicker(
+              inputId = "pub_period", start = lubridate::floor_date(Sys.Date(), unit = "month"), end = Sys.Date(),
+              min = "2023-06-15", max = Sys.Date(), label = NULL, ranges = list(
+                "Current Month" = c(lubridate::floor_date(Sys.Date(), unit = "month"), Sys.Date()),
+                "Current Quarter" = c(lubridate::floor_date(Sys.Date(), unit = "quarter"), Sys.Date()),
+                "Current Year" = c(lubridate::floor_date(Sys.Date(), unit = "year"), Sys.Date())
               )
             )
           ),
-          fluidRow(
-            column(width = 6, plotlyOutput(outputId = "stock_positions_periodly")),
-            column(width = 6, plotlyOutput(outputId = "stock_positions_cumsum"))
+          column(
+            width = 8,
+            shinyWidgets::radioGroupButtons(
+              inputId = "pub_type", selected = "summary", justified = TRUE, size = "sm",
+              choices = c("Summary" = "summary", "Products" = "products", "Customer" = "customer",
+                          "Stock" = "stock")
+            )
           )
-        )
+        ),
+        fluidRow(
+          infoBoxOutput(outputId = "pub_v_income", width = 3),
+          infoBoxOutput(outputId = "pub_v_cost", width = 3),
+          infoBoxOutput(outputId = "pub_v_sales", width = 3),
+          infoBoxOutput(outputId = "pub_v_customer", width = 3)
+        ),
+        uiOutput(outputId = "pub_result")
       ),
       ## crypto tab ----
       tabItem(
         tabName = "crypto",
         div("crypto")
-      ),
-      ## pub tab ----
-      tabItem(
-        tabName = "pub",
-        ### sales ----
-        box(
-          title = "Summary", status = "lightblue", solidHeader = TRUE, width = NULL,
-          id = "pub_summary",
-          fluidRow(
-            column(
-              width = 4,
-              daterangepicker::daterangepicker(
-                inputId = "pub_summary_period", start = lubridate::floor_date(Sys.Date(), unit = "month"), end = Sys.Date(),
-                min = "2023-06-15", max = Sys.Date(), label = NULL, ranges = list(
-                  "Current Month" = c(lubridate::floor_date(Sys.Date(), unit = "month"), Sys.Date()),
-                  "Current Quarter" = c(lubridate::floor_date(Sys.Date(), unit = "quarter"), Sys.Date()),
-                  "Current Year" = c(lubridate::floor_date(Sys.Date(), unit = "year"), Sys.Date())
-                )
-              )
-            ),
-            column(
-              width = 5, offset = 3,
-              shinyWidgets::radioGroupButtons(
-                inputId = "pub_summary_type", selected = "daily", justified = TRUE,
-                choices = c("Daily" = "daily", "Monthly" = "monthly", "Quarterly" = "quarterly", "Yearly" = "yearly")
-              )
-            )
-          ),
-          fluidRow(
-            column(width = 6, plotlyOutput(outputId = "pub_summary_periodly")),
-            column(width = 6, plotlyOutput(outputId = "pub_summary_cumsum"))
-          )
-        ),
-        ### products ----
-        box(
-          title = "Products", status = "lightblue", solidHeader = TRUE, width = NULL,
-          id = "pub_products",
-          fluidRow(
-            column(
-              width = 4,
-              daterangepicker::daterangepicker(
-                inputId = "pub_products_period", start = lubridate::floor_date(Sys.Date(), unit = "month"), end = Sys.Date(),
-                min = "2023-06-15", max = Sys.Date(), label = NULL, ranges = list(
-                  "Current Month" = c(lubridate::floor_date(Sys.Date(), unit = "month"), Sys.Date()),
-                  "Current Quarter" = c(lubridate::floor_date(Sys.Date(), unit = "quarter"), Sys.Date()),
-                  "Current Year" = c(lubridate::floor_date(Sys.Date(), unit = "year"), Sys.Date())
-                )
-              )
-            ),
-            column(
-              width = 4, offset = 4,
-              shinyWidgets::pickerInput(
-                inputId = "pub_products_code", label = NULL, 
-                choices = pub_subjects,
-                choicesOpt = list(subtext = pub_subjects),
-                options = pickerOptions(size = 5, liveSearch = TRUE)
-              )
-            )
-          ),
-          fluidRow(
-            column(width = 6, plotlyOutput(outputId = "pub_products_periodly")),
-            column(width = 6, plotlyOutput(outputId = "pub_products_cumsum"))
-          ),
-          fluidRow(
-            column(width = 12, plotlyOutput(outputId = "pub_products_sales"))
-          )
-        )
       )
     )
   ),

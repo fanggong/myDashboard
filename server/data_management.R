@@ -1,10 +1,7 @@
-output$dm_status <- renderDT({
-  dat_status[database == input$dm_database]
-},
-options = list(
-  scrollX = TRUE
-))
-
+output$dm_status <- renderDT(
+  {dat_status[database == input$dm_database]},
+  options = list(scrollX = TRUE)
+)
 observeEvent(input$dm_database, {
   updateSelectizeInput(
     session = session, inputId = "dm_tbl", 
@@ -54,10 +51,11 @@ observeEvent(input$dm_update, {
   })
   
   dat_status <- get_data_status()
-  output$dm_status <- renderDT({
-    dat_status[database == input$dm_database]
-  },
-  options = list(
-    scrollX = TRUE
-  ))
+  output$dm_status <- renderDT(
+    {dat_status[database == input$dm_database]},
+    options = list(scrollX = TRUE)
+  )
+  
+  source(paste0("scripts/data_", input$dm_database, ".R"))
+  
 })

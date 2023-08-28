@@ -1,8 +1,25 @@
+# 
+# input <- list(
+#   stock_period = c("2023-01-01", "2023-03-30"),
+#   stock_positions_code = "600647.SH"
+# )
+# 
+# stock_pnl_daily <- function() {
+#   stock_pnl_daily[cal_date >= input$stock_period[1] & cal_date <= input$stock_period[2]]
+# }
+# 
+# stock_pnl_detail <- function() {
+#   stock_pnl_detail[cal_date >= input$stock_period[1] & cal_date <= input$stock_period[2]]
+# }
+
+
 stock_summary_dat <- reactive({
-  tmp <- stock_pnl_daily
-  tmp <- tmp[cal_date >= input$stock_summary_period[1] & cal_date <= input$stock_summary_period[2]]
-   if (input$stock_summary_type == "monthly") {
-     tmp <- tmp[
+  
+  if (input$stock_summary_type == "daily") {
+    tmp <- stock_pnl_daily_dat()
+  }
+  else if (input$stock_summary_type == "monthly") {
+     tmp <- stock_pnl_daily_dat()[
        , .(
          all = last(all),
          periodly = sum(periodly),
@@ -14,12 +31,13 @@ stock_summary_dat <- reactive({
      ][
        , `:=`(
          cal_date = .mid_date(start_date, end_date),
-         start_date = .ifelse(start_date > input$stock_summary_period[1], start_date, input$stock_summary_period[1]),
-         end_date = .ifelse(end_date < input$stock_summary_period[2], end_date, input$stock_summary_period[2])
+         start_date = .ifelse(start_date > input$stock_period[1], start_date, input$stock_period[1]),
+         end_date = .ifelse(end_date < input$stock_period[2], end_date, input$stock_period[2])
        )
      ]
-  } else if (input$stock_summary_type == "quarterly") {
-    tmp <- tmp[
+  } 
+  else if (input$stock_summary_type == "quarterly") {
+    tmp <- stock_pnl_daily_dat()[
       , .(
         all = last(all),
         periodly = sum(periodly),
@@ -31,12 +49,13 @@ stock_summary_dat <- reactive({
     ][
       , `:=`(
         cal_date = .mid_date(start_date, end_date),
-        start_date = .ifelse(start_date > input$stock_summary_period[1], start_date, input$stock_summary_period[1]),
-        end_date = .ifelse(end_date < input$stock_summary_period[2], end_date, input$stock_summary_period[2])
+        start_date = .ifelse(start_date > input$stock_period[1], start_date, input$stock_period[1]),
+        end_date = .ifelse(end_date < input$stock_period[2], end_date, input$stock_period[2])
       )
     ]
-  } else if (input$stock_summary_type == "yearly") {
-    tmp <- tmp[
+  } 
+  else if (input$stock_summary_type == "yearly") {
+    tmp <- stock_pnl_daily_dat()[
       , .(
         all = last(all),
         periodly = sum(periodly),
@@ -48,8 +67,8 @@ stock_summary_dat <- reactive({
     ][
       , `:=`(
         cal_date = .mid_date(start_date, end_date),
-        start_date = .ifelse(start_date > input$stock_summary_period[1], start_date, input$stock_summary_period[1]),
-        end_date = .ifelse(end_date < input$stock_summary_period[2], end_date, input$stock_summary_period[2])
+        start_date = .ifelse(start_date > input$stock_period[1], start_date, input$stock_period[1]),
+        end_date = .ifelse(end_date < input$stock_period[2], end_date, input$stock_period[2])
       )
     ]
   }
@@ -96,31 +115,30 @@ output$stock_summary_periodly <- renderPlotly({
 })
 
 output$stock_summary_cumsum <- renderPlotly({
-  
-  # stock_summary_dat <- function() {
-  #   stock_pnl_daily
-  # }
-  # 
-  # input <- list(stock_summary_type = "daily")
-  
+
   fig <- plot_ly(opacity = OPACITY) %>%
     add_trace(
+      x = stock_summary_dat()$cal_date, y = 0,
+      type = "scatter", mode = "markers",
+      marker = list(color = BLANK),
+      hoverinfo = "text", hovertext = paste0("<b>", stock_summary_dat()$cal_date, "</br>")
+    ) %>%
+    add_trace(
       x = stock_summary_dat()$cal_date, y = stock_summary_dat()$periodly_cumsum,
-      type = "scatter", mode = "lines", fill = "tozeroy",
+      type = "scatter", mode = "lines", fill = "tozeroy", fillcolor = FILL_COLOR,
       line = list(color = NORMAL_COLOR),
       hoverinfo = "text", hovertext = paste0(
-        "</br> Date: ", stock_summary_dat()$end_date,
         "</br> Cumulative P&L: ", .format_number(stock_summary_dat()$periodly_cumsum)
       )
     ) %>%
     add_trace(
-      x = stock_summary_dat()$cal_date, y = stock_summary_dat()$all, 
+      x = stock_summary_dat()$cal_date, y = stock_summary_dat()$all,
       type = "scatter", mode = "lines",
       line = list(color = NORMAL_COLOR, dash = "dot"),
       hoverinfo = "text", hovertext = paste0(
         "</br> Overall P&L: ", .format_number(stock_summary_dat()$all)
-      ) 
-    ) %>% 
+      )
+    ) %>%
     layout(
       showlegend = FALSE, hovermode = "x unified",
       xaxis = list(zeroline = FALSE, title = "Date"),

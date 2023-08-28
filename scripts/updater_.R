@@ -6,7 +6,7 @@ stockUpdater <- R6::R6Class(
     api = NA,
     nowdate = NA,
     initialize = function(nowdate = Sys.Date(), api = NA, conn = NA) {
-      if (!is.Date(nowdate)) {
+      if (!lubridate::is.Date(nowdate)) {
         nowdate <- as.Date(nowdate, origin = "1970-01-01")
       }
       self$nowdate <- format(nowdate, "%Y%m%d")
@@ -139,7 +139,7 @@ yinbaoUpdater <- R6::R6Class(
     conn = NA,
     nowdate = NA,
     initialize = function(app_id, app_key, conn, nowdate = Sys.Date()) {
-      if (!is.Date(nowdate)) {
+      if (!lubridate::is.Date(nowdate)) {
         nowdate <- as.Date(nowdate, origin = "1970-01-01")
       }
       self$app_id <- app_id
@@ -172,12 +172,16 @@ yinbaoUpdater <- R6::R6Class(
       body <- self$get_body(...)
       signature <- self$get_signature(body)
       headers <- self$get_headers(timestamp, signature)
+      # print(body)
+      # print(signature)
+      # print(headers)
+      # print(paste0(self$url, api))
       response <- httr::POST(
         url = paste0(self$url, api), httr::add_headers(.headers = headers), body = body
       )
       result <- httr::content(response)
       if (result$status == "success") {
-        return(result$data$result)
+        return(result$data)
       } else {
         stop(result$messages[[1]])
       }
@@ -231,14 +235,17 @@ yinbaoUpdater <- R6::R6Class(
       startTime <- paste0(self$nowdate, " 00:00:00")
       endTime <- paste0(self$nowdate, " 23:59:59")
       api <- "/ticketOpenApi/queryTicketPages"
-      result <- self$get_result(api = api, startTime = startTime, endTime = endTime)
+      result <- self$get_result(api = api, startTime = startTime, endTime = endTime)$result
       if (length(result) == 0) {
         message("No data available between ", startTime, " and ", endTime)
         return(NULL)
       }
       for (i in 1:length(result)) {
         dat <- result[[i]]
-        
+        payments <- data.table::rbindlist(lapply(result[[i]]$payments, data.table::as.data.table))
+        ticket_recharge_amount <- payments[code == "payCode_2"]$amount
+        ticket_other_amount <- payments[code != "payCode_2"]$amount
+
         ticket <- data.table::data.table(
           casher_uid = dat$cashierUid,
           customer_uid = dat$customerUid,
@@ -246,6 +253,8 @@ yinbaoUpdater <- R6::R6Class(
           sn = dat$sn,
           datetime = dat$datetime,
           total_amount = dat$totalAmount,
+          ticket_recharge_amount = ifelse(length(ticket_recharge_amount) == 0, 0, ticket_recharge_amount),
+          ticket_other_amount = ticket_other_amount,
           total_profit = dat$totalProfit,
           discount = dat$discount,
           rounding = dat$rounding,
@@ -260,7 +269,7 @@ yinbaoUpdater <- R6::R6Class(
           tbl_name = "ticket", dat = ticket, index = NULL,
           partition = list(uid = dat$uid, datetime = c(startTime, endTime))
         )
-        
+
         ticket_detail <- data.table::rbindlist(lapply(dat$items, data.table::as.data.table))
         ticket_detail <- ticket_detail[
           , .(
@@ -287,13 +296,21 @@ yinbaoUpdater <- R6::R6Class(
       }
     },
     update_product = function(...) {
+
       api <- "/productOpenApi/queryProductCategoryPages"
-      result <- self$get_result(api = api)
+      result <- self$get_result(api = api)$result
       product_category <- data.table::rbindlist(lapply(result, data.table::as.data.table))
-      
+
       api <- "/productOpenApi/queryProductPages"
+      product <- list()
       result <- self$get_result(api = api)
-      product <- data.table::rbindlist(lapply(result, data.table::as.data.table), fill = TRUE)
+      while (length(result$result) == result$pageSize) {
+        product <- c(product, result$result)
+        result <- self$get_result(api = api, postBackParameter = result$postBackParameter)
+      }
+      product <- c(product, result$result)
+      
+      product <- data.table::rbindlist(lapply(product, data.table::as.data.table), fill = TRUE)
       
       product <- data.table::merge.data.table(
         product, product_category, by.x = "categoryUid", by.y = "uid",
@@ -325,10 +342,11 @@ yinbaoUpdater <- R6::R6Class(
         )
       ]
       self$full_update(tbl_name = "product", dat = product)
+      source("scripts/maintain_haiyue.R")
     },
     update_customer = function(...) {
       api <- "/customerOpenApi/queryCustomerPages"
-      result <- self$get_result(api = api)
+      result <- self$get_result(api = api)$result
       customer <- list()
       for (i in 1:length(result)) {
         if (result[[i]]$enable == 1) {
@@ -365,7 +383,7 @@ yinbaoUpdater <- R6::R6Class(
       endTime <- paste0(self$nowdate, " 23:59:59")
       excludeEndTime <- paste0(as.Date(self$nowdate) + 1, " 00:00:00")
       api <- "/stockFlowOpenApi/queryStockFlowPages"
-      result <- self$get_result(api = api, startTime = startTime, excludeEndTime = excludeEndTime)
+      result <- self$get_result(api = api, startTime = startTime, excludeEndTime = excludeEndTime)$result
       if (length(result) == 0) {
         message("No data available between ", startTime, " and ", endTime)
         return(NULL)
@@ -408,10 +426,43 @@ yinbaoUpdater <- R6::R6Class(
         tbl_name = "stock_flow", dat = stk_flow, index = NULL,
         partition = list(confirmed_time = c(startTime, endTime))
       )
+    },
+    update_customer_recharge_log = function(...) {
+      stateDate <- paste0(self$nowdate, " 00:00:00")
+      endDate <- paste0(self$nowdate, " 23:59:59")
+      api <- "/customerOpenApi/queryAllRechargeLogs"
+      result <- self$get_result(api = api, stateDate = stateDate, endDate = endDate)$result
+      if (length(result) == 0) {
+        message("No data available between ", stateDate, " and ", endDate)
+        return(NULL)
+      }
+      result <- data.table::rbindlist(lapply(result, data.table::as.data.table))
+      result <- data.table::data.table(
+        recharge_store_app_id = result$rechargeStoreAppId,
+        recharge_store_account = result$rechargeStoreAccount,
+        customer_uid = result$customerUid,
+        casher_uid = result$cashierUid,
+        recharge_money = result$rechargeMoney,
+        gift_money = result$giftMoney,
+        datetime = result$datetime,
+        uid = result$uid,
+        pay_method = result$payMethod,
+        pay_method_code = result$payMethodCode,
+        remark = result$remark
+      )
+      self$full_update("customer_recharge_log", result)
     }
   )
 )
 
+# test ----
+# conn <- dbConnect(
+#   RPostgres::Postgres() , dbname = "haiyue", user = pg_username,
+#   password = pg_pwd, host = host, port = 5432
+# )
+# # tmp <- stockUpdater$new(api = api, nowdate = "2022-12-31", conn = conn)
+# updater <- yinbaoUpdater$new(app_id = app_id, app_key = app_key, conn = conn, nowdate = "2023-08-25")
+# result <- updater$update_product()
 
 # funcs ----
 
@@ -501,10 +552,4 @@ update_stock <- function(tbl_lst, start_date, end_date, api, conn, ...) {
   message("----------- Stock Updater End -----------", sep = "")
 }
 
-# conn <- dbConnect(
-#   RPostgres::Postgres() , dbname = "quant_r", user = pg_username,
-#   password = pg_pwd, host = host, port = 5432
-# )
-# tmp <- stockUpdater$new(api = api, nowdate = "2022-12-31", conn = conn)
-# tmp <- yinbaoUpdater$new(app_id = app_id, app_key = app_key, conn = conn, nowdate = "2023-08-01")
-# tmp$update_daily()
+

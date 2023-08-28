@@ -1,33 +1,6 @@
+
 stock_positions_dat <- reactive({
-  tmp <- stock_pnl_detail[code == input$stock_positions_code][
-    order(cal_date)
-  ][
-    , `:=`(
-      start_date = cal_date,
-      end_date = cal_date,
-      all = value - cost
-    )
-  ][
-    , `:=`(
-      daily = all - shift(all, n = 1, type = "lag")
-    )
-  ][
-    , `:=`(
-      daily = fifelse(is.na(daily), first(all), daily)
-    )
-  ][
-    cal_date >= "2023-01-01"
-  ][
-    , `:=`(
-      daily_cumsum = cumsum(daily),
-      cal_date = .mid_date(start_date, end_date)
-    )
-  ][
-    cal_date >= input$stock_positions_period[1] & cal_date <= input$stock_positions_period[2], .(
-      cal_date, start_date, end_date, code, name, size, value, all, daily, daily_cumsum
-    )
-  ]
-  tmp
+  stock_pnl_detail_dat()[code == input$stock_positions_code]
 })
 
 output$stock_positions_periodly <- renderPlotly({

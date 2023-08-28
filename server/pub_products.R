@@ -1,15 +1,16 @@
-pub_tmp <- reactive({
+pub_products_tmp <- reactive({
   data.frame(
     cal_date = seq.Date(
-      as.Date(input$pub_products_period[1]), 
-      as.Date(input$pub_products_period[2]), 
-      by = 1)
+      as.Date(input$pub_period[1]), 
+      as.Date(input$pub_period[2]), 
+      by = 1
+    )
   )
 })
 
 
 pub_products_dat <- reactive({
-  tmp <- tkt_detail[
+  tmp <- tkt_detail_dat()[
     , .(
       product_quantity = sum(quantity),
       product_size = first(product_size),
@@ -19,11 +20,11 @@ pub_products_dat <- reactive({
     ), .(cal_date, product_name, product_barcode)
   ]
   
-  products <- unique(tkt_detail[
+  products <- unique(tkt_detail_dat()[
     material_barcode == input$pub_products_code, 
     .(product_barcode, product_name, product_size, product_unit)
   ])
-  products <- merge.data.frame(pub_tmp(), products)
+  products <- merge.data.frame(pub_products_tmp(), products)
   tmp <- merge(products, tmp, all.x = TRUE)
   setDT(tmp)
   tmp <- tmp[
@@ -46,7 +47,7 @@ pub_products_dat <- reactive({
 
 pub_material_dat <- reactive({
   
-  tmp <- tkt_detail[
+  tmp <- tkt_detail_dat()[
     , .(
       quantity = sum(material_quantity),
       amount = sum(total_amount),
@@ -58,7 +59,7 @@ pub_material_dat <- reactive({
     material_barcode == input$pub_products_code, 
     .(material_name, material_barcode, product_unit)
   ])
-  products <- merge.data.frame(pub_tmp(), products)
+  products <- merge.data.frame(pub_products_tmp(), products)
   
   tmp <- merge(products, tmp, all.x = TRUE)
   setDT(tmp)
@@ -149,14 +150,14 @@ output$pub_products_cumsum <- renderPlotly({
         )
       ) %>% 
       add_trace(
-        x = pub_products_dat()[cal_date == input$pub_products_period[2]]$cal_date, 
-        y = pub_products_dat()[cal_date == input$pub_products_period[2]]$quantity_cumsum, 
+        x = pub_products_dat()[cal_date == input$pub_period[2]]$cal_date, 
+        y = pub_products_dat()[cal_date == input$pub_period[2]]$quantity_cumsum, 
         marker = list(
           color = colorRampPalette(c(NORMAL_COLOR, BASE_COLOR))(uniqueN(pub_products_dat()$product_name)),
           size = 6
         ),
         type = "scatter", mode = "markers+text",
-        text = as.integer(pub_products_dat()[cal_date == input$pub_products_period[2]]$quantity_cumsum),
+        text = as.integer(pub_products_dat()[cal_date == input$pub_period[2]]$quantity_cumsum),
         textfont = list(
           color = colorRampPalette(c(NORMAL_COLOR, BASE_COLOR))(uniqueN(pub_products_dat()$product_name)),
           size = 12
