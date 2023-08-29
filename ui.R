@@ -147,4 +147,4 @@ ui <- dashboardPage(
   )
 )
 
-# ui <- secure_app(ui, theme = shinytheme("yeti"))
+ui <- secure_app(ui, theme = shinytheme("yeti"))
