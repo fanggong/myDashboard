@@ -1,7 +1,26 @@
-output$dm_status <- renderDT(
-  {dat_status[database == input$dm_database]},
-  options = list(scrollX = TRUE)
-)
+observeEvent(list(input$dm_update, input$dm_database), {
+  output$dm_status <- renderDT(
+    {
+      conn <- dbConnect(
+        RPostgres::Postgres() , dbname = input$dm_database, user = pg_username, 
+        password = pg_pwd, host = host, port = 5432
+      )
+      tmp <- dbGetQuery(conn, "select * from data_manage")
+      setDT(tmp)
+      tmp[
+        , `:=`(
+          updated_at = as.character(updated_at, tz = "Asia/Shanghai")
+        )
+      ]
+      tmp
+      
+    },
+    options = list(scrollX = TRUE)
+  )
+})
+
+
+
 observeEvent(input$dm_database, {
   updateSelectizeInput(
     session = session, inputId = "dm_tbl", 
@@ -49,12 +68,6 @@ observeEvent(input$dm_update, {
   message = function(m) {
     shinyjs::html(id = "dm_message", html = m$message, add = TRUE)
   })
-  
-  dat_status <- get_data_status()
-  output$dm_status <- renderDT(
-    {dat_status[database == input$dm_database]},
-    options = list(scrollX = TRUE)
-  )
   
   source(paste0("scripts/data_", input$dm_database, ".R"))
   

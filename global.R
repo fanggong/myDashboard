@@ -71,27 +71,4 @@ TBL_LST <- list(
   )
 )
 
-## funcs ----
-get_data_status <- function(tar = list("quant_r", "haiyue")) {
-  result <- list()
-  for (i in 1:length(tar)) {
-    conn <- dbConnect(
-      RPostgres::Postgres() , dbname = tar[[i]], user = pg_username, 
-      password = pg_pwd, host = host, port = 5432
-    )
-    tmp <- dbGetQuery(conn, "select * from data_manage")
-    tmp <- list(tmp)
-    names(tmp) <- tar[[i]]
-    result <- append(result, tmp)
-    dbDisconnect(conn)
-  }
-  result <- data.table::rbindlist(result, idcol = "database")
-  result$updated_at <- .as_character(result$updated_at)
-  setDT(result)
-  result
-}
-
-dat_status <- get_data_status()
-
-
 

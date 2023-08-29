@@ -47,6 +47,7 @@ tkt_detail[
   )
 ]
 tkt_detail <- tkt_detail[order(cal_date)]
+tkt_detail <- tkt_detail[!is.na(material_name)]
 
 tmp <- tkt_detail[
   , .(
