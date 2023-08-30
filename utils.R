@@ -8,7 +8,7 @@
 }
 
 .as_character <- function(datetime = Sys.time()) {
-  as.character(datetime, tz = "Asia/Shanghai")
+  as.character(format(datetime, tz = "Asia/Shanghai"))
 }
 
 

@@ -461,8 +461,8 @@ yinbaoUpdater <- R6::R6Class(
 #   password = pg_pwd, host = host, port = 5432
 # )
 # # tmp <- stockUpdater$new(api = api, nowdate = "2022-12-31", conn = conn)
-# updater <- yinbaoUpdater$new(app_id = app_id, app_key = app_key, conn = conn, nowdate = "2023-08-25")
-# result <- updater$update_product()
+# updater <- yinbaoUpdater$new(app_id = app_id, app_key = app_key, conn = conn, nowdate = "2023-08-30")
+# updater$update_product()
 
 # funcs ----
 
@@ -486,13 +486,13 @@ update_data_management <- function(tbl_name, conn, partition, database) {
   sql <- .str_replace(sql, "partition", partition)
   sql <- .str_replace(sql, "tbl_name", tbl_name)
   newest_partition <- dbGetQuery(conn, sql)[1, 1]
-  if (is.timepoint(newest_partition)) {
+  if (lubridate::is.timepoint(newest_partition)) {
     newest_partition <- .as_character(newest_partition)
   }
   
   if (!is_exist) {
     tmp["newest_partition"] <- newest_partition
-    tmp["updated_at"] <- Sys.time()
+    tmp["updated_at"] <- .as_character(Sys.time())
     dbAppendTable(conn, "data_manage", tmp)
   } else {
     sql <- "
@@ -504,7 +504,7 @@ update_data_management <- function(tbl_name, conn, partition, database) {
     "
     sql <- glue::glue_sql(
       sql, tbl_name = tbl_name, newest_partition = newest_partition,
-      nowtime = as.character(Sys.time(), tz = "UTC"), .con = conn
+      nowtime = .as_character(Sys.time()), .con = conn
     )
     dbSendQuery(conn, sql)
   }
@@ -519,6 +519,7 @@ update_pub <- function(tbl_lst, start_date, end_date, app_id, app_key, conn) {
   message("Period: From ", start_date, " to ", end_date, sep = "")
   suppressWarnings({
     for (nowdate in seq.Date(as.Date(start_date), as.Date(end_date), by = 1)) {
+      nowdate <- as.Date(nowdate)
       tmp <- yinbaoUpdater$new(app_id = app_id, app_key = app_key, conn = conn, nowdate = nowdate)
       for (tbl_name in tbl_lst) {
         tmp[[paste0("update_", tbl_name)]]()
@@ -538,6 +539,7 @@ update_stock <- function(tbl_lst, start_date, end_date, api, conn, ...) {
   message("Period: From ", start_date, " to ", end_date, sep = "")
   suppressWarnings({
     for (nowdate in seq.Date(as.Date(start_date), as.Date(end_date), by = 1)) {
+      nowdate <- as.Date(nowdate)
       if (nowdate %in% TRADE_DATE) {
         tmp <- stockUpdater$new(api = api, nowdate = nowdate, conn = conn)
         for (tbl_name in tbl_lst) {

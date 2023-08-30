@@ -2,16 +2,11 @@ observeEvent(list(input$dm_update, input$dm_database), {
   output$dm_status <- renderDT(
     {
       conn <- dbConnect(
-        RPostgres::Postgres() , dbname = input$dm_database, user = pg_username, 
+        RPostgres::Postgres() , dbname = input$dm_database, user = pg_username,
         password = pg_pwd, host = host, port = 5432
       )
       tmp <- dbGetQuery(conn, "select * from data_manage")
       setDT(tmp)
-      tmp[
-        , `:=`(
-          updated_at = as.character(updated_at, tz = "Asia/Shanghai")
-        )
-      ]
       tmp
       
     },
