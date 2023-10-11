@@ -20,6 +20,7 @@ library(Tushare)
 library(openxlsx)
 library(R6)
 
+
 source("config.R")
 source("utils.R")
 source("scripts/updater_.R")
