@@ -31,6 +31,31 @@ suppressWarnings({
   ## update product name and barcode in ticket detail ----
   sql <- "
   update ticket_detail
+  set 
+    name = '方圆飞花IPA-350ml'
+  where name = '方圆 飞花IPA-350ml'
+  "
+  dbSendQuery(conn, sql)
+  
+  
+  sql <- "
+  update ticket_detail
+  set 
+    name = '麻蛇博士三倍西海岸-350ml'
+  where product_barcode = '2197220525357'
+  "
+  dbSendQuery(conn, sql)
+  
+  sql <- "
+  update ticket_detail
+  set
+    name = '(美)场外深渊双倍IPA-350ml'
+  where product_barcode = '2412590145265'
+  "
+  dbSendQuery(conn, sql)
+  
+  sql <- "
+  update ticket_detail
   set
     name = '伏魔IPA-350ml',
     product_uid = 584817481406207744,
