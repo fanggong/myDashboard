@@ -32,8 +32,6 @@ suppressWarnings({
   sql <- "
   update ticket_detail
   set 
-<<<<<<< HEAD
-=======
     name = '方圆飞花IPA-350ml'
   where name = '方圆 飞花IPA-350ml'
   "
@@ -43,7 +41,6 @@ suppressWarnings({
   sql <- "
   update ticket_detail
   set 
->>>>>>> 04dc8a93ee51355a68058bbfc7bd681a1862e7bd
     name = '麻蛇博士三倍西海岸-350ml'
   where product_barcode = '2197220525357'
   "
